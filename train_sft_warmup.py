@@ -22,6 +22,7 @@ import yaml
 from datasets import Dataset
 from trl import SFTConfig, SFTTrainer
 from unsloth import FastVisionModel
+from unsloth.trainer import UnslothVisionDataCollator
 
 
 @dataclass
@@ -74,7 +75,6 @@ class SFTWarmupConfig:
 
 def build_answer_text(findings: list[dict]) -> str:
     """Build the expected model output with think + answer tags."""
-    # Build a simple reasoning chain
     reasoning_parts = []
     for f in findings:
         q_names = {1: "upper-right", 2: "upper-left", 3: "lower-left", 4: "lower-right"}
@@ -91,7 +91,6 @@ def build_answer_text(findings: list[dict]) -> str:
 
     reasoning = " ".join(reasoning_parts)
 
-    # Build answer string
     answer_parts = [
         f"Q{f['quadrant']}T{f['tooth']}:{f['diagnosis']}" for f in findings
     ]
@@ -101,10 +100,11 @@ def build_answer_text(findings: list[dict]) -> str:
 
 
 def build_sft_dataset(data_path: Path) -> Dataset:
-    """Build dataset with full conversations (system + user + assistant response).
+    """Build dataset with Qwen3-VL compatible message format.
 
-    SFTTrainer expects a dataset with a "messages" or "text" column where
-    the assistant response is included as the training target.
+    Qwen3-VL expects content as a list of typed dicts:
+        [{"type": "text", "text": "..."}]
+    instead of plain strings.
     """
     samples = []
     with data_path.open() as f:
@@ -115,16 +115,24 @@ def build_sft_dataset(data_path: Path) -> Dataset:
 
     conversations = []
     for sample in samples:
-        messages = sample["messages"]  # system + user
         gt = sample["ground_truth"]
         findings = gt["findings"]
-
-        # Build the assistant's ideal response
         assistant_response = build_answer_text(findings)
 
-        # Full conversation: system + user + assistant
-        full_messages = messages + [
-            {"role": "assistant", "content": assistant_response}
+        # Qwen3-VL message format: content is list of typed dicts
+        full_messages = [
+            {
+                "role": "system",
+                "content": [{"type": "text", "text": sample["messages"][0]["content"]}],
+            },
+            {
+                "role": "user",
+                "content": [{"type": "text", "text": sample["messages"][1]["content"]}],
+            },
+            {
+                "role": "assistant",
+                "content": [{"type": "text", "text": assistant_response}],
+            },
         ]
         conversations.append(full_messages)
 
@@ -169,22 +177,14 @@ def main() -> None:
         lora_dropout=0.0,
         bias="none",
         use_gradient_checkpointing=cfg.use_gradient_checkpointing,
+        finetune_vision_layers=False,   # text-only SFT, no image inputs
+        finetune_language_layers=True,
     )
 
     # Load data
     print(f"Loading training data: {cfg.train_data_path}")
     train_dataset = build_sft_dataset(Path(cfg.train_data_path))
     print(f"  {len(train_dataset)} training samples")
-
-    # Formatting function required by Unsloth's SFTTrainer
-    def formatting_func(examples):
-        texts = []
-        for msgs in examples["messages"]:
-            text = tokenizer.apply_chat_template(
-                msgs, tokenize=False, add_generation_prompt=False
-            )
-            texts.append(text)
-        return texts
 
     # Configure SFT
     sft_config = SFTConfig(
@@ -201,15 +201,16 @@ def main() -> None:
         report_to=cfg.report_to,
         seed=cfg.seed,
         bf16=True,
+        dataset_text_field="",          # required by unsloth for vision models
+        remove_unused_columns=False,    # keep messages column
     )
 
-    # Train
+    # Train — use UnslothVisionDataCollator as required by Qwen3-VL
     trainer = SFTTrainer(
         model=model,
         args=sft_config,
         train_dataset=train_dataset,
-        formatting_func=formatting_func,
-        processing_class=tokenizer,
+        data_collator=UnslothVisionDataCollator(model, tokenizer),
     )
 
     print(f"Starting SFT warmup ({cfg.sft_epochs} epoch(s))...")
