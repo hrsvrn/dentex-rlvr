@@ -16,11 +16,12 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
+import unsloth  # must be imported first
 import torch
 import yaml
 from datasets import Dataset
 from trl import SFTConfig, SFTTrainer
-from unsloth import FastLanguageModel
+from unsloth import FastVisionModel
 
 
 @dataclass
@@ -28,7 +29,7 @@ class SFTWarmupConfig:
     """SFT warmup configuration (reuses GRPO config + SFT-specific overrides)."""
 
     # Model
-    model_name: str = "Qwen/Qwen3-VL-7B-Instruct"
+    model_name: str = "unsloth/Qwen3-VL-8B-Instruct"
     load_in_4bit: bool = True
 
     # LoRA (same as GRPO for adapter compatibility)
@@ -152,7 +153,7 @@ def main() -> None:
 
     # Load model
     print(f"Loading model: {cfg.model_name} (4-bit={cfg.load_in_4bit})")
-    model, tokenizer = FastLanguageModel.from_pretrained(
+    model, tokenizer = FastVisionModel.from_pretrained(
         model_name=cfg.model_name,
         max_seq_length=cfg.max_seq_length,
         load_in_4bit=cfg.load_in_4bit,
@@ -160,7 +161,7 @@ def main() -> None:
     )
 
     # Apply LoRA
-    model = FastLanguageModel.get_peft_model(
+    model = FastVisionModel.get_peft_model(
         model,
         r=cfg.lora_r,
         lora_alpha=cfg.lora_alpha,

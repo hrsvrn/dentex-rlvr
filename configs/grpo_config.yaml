@@ -2,7 +2,7 @@
 # Tuned for H100 SXM 80GB (~55GB VRAM target)
 
 # Model
-model_name: "Qwen/Qwen3-VL-7B-Instruct"
+model_name: "unsloth/Qwen3-VL-8B-Instruct"
 load_in_4bit: true
 
 # LoRA

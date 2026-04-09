@@ -8,11 +8,12 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+import unsloth  # must be imported first
 import torch
 import yaml
 from datasets import Dataset
 from trl import GRPOConfig, GRPOTrainer
-from unsloth import FastLanguageModel
+from unsloth import FastVisionModel
 
 from rewards.format_reward import format_reward
 from rewards.fdi_reward import fdi_reward
@@ -23,7 +24,7 @@ class TrainConfig:
     """Training configuration loaded from YAML."""
 
     # Model
-    model_name: str = "Qwen/Qwen3-VL-7B-Instruct"
+    model_name: str = "unsloth/Qwen3-VL-8B-Instruct"
     load_in_4bit: bool = True
 
     # LoRA
@@ -148,7 +149,7 @@ def main() -> None:
 
     # Load model with Unsloth QLoRA
     print(f"Loading model: {cfg.model_name} (4-bit={cfg.load_in_4bit})")
-    model, tokenizer = FastLanguageModel.from_pretrained(
+    model, tokenizer = FastVisionModel.from_pretrained(
         model_name=cfg.model_name,
         max_seq_length=2048,
         load_in_4bit=cfg.load_in_4bit,
@@ -156,7 +157,7 @@ def main() -> None:
     )
 
     # Apply LoRA adapters
-    model = FastLanguageModel.get_peft_model(
+    model = FastVisionModel.get_peft_model(
         model,
         r=cfg.lora_r,
         lora_alpha=cfg.lora_alpha,
