@@ -16,7 +16,7 @@ pip install --upgrade pip > /dev/null
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu121
 
 # Unsloth (4-bit QLoRA)
-pip install "unsloth[colab-new] @ git+https://github.com/unslothai/unsloth.git"
+pip install unsloth
 
 # TRL + transformers
 pip install trl>=0.12.0 transformers>=4.46.0 accelerate>=0.34.0
