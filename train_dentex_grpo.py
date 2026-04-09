@@ -114,18 +114,41 @@ def make_reward_fn(
     """Create the combined reward function for GRPOTrainer.
 
     GRPOTrainer calls reward_fn(completions, prompts=...) where completions
-    is a list of generated text strings.
+    may be strings OR lists of message dicts (newer TRL versions).
     """
 
-    def reward_fn(completions: list[str], **kwargs: Any) -> list[float]:
+    def _extract_text(completion) -> str:
+        """Extract raw text from completion (handles str or message list)."""
+        if isinstance(completion, str):
+            return completion
+        if isinstance(completion, list):
+            # List of message dicts: [{"role": "assistant", "content": "..."}]
+            parts = []
+            for msg in completion:
+                if isinstance(msg, dict):
+                    content = msg.get("content", "")
+                    if isinstance(content, list):
+                        # Qwen3-VL format: [{"type": "text", "text": "..."}]
+                        for item in content:
+                            if isinstance(item, dict) and item.get("type") == "text":
+                                parts.append(item.get("text", ""))
+                    else:
+                        parts.append(str(content))
+                else:
+                    parts.append(str(msg))
+            return " ".join(parts)
+        return str(completion)
+
+    def reward_fn(completions, **kwargs: Any) -> list[float]:
         ground_truths = kwargs.get("ground_truth", [])
         rewards = []
 
         for completion, gt_str in zip(completions, ground_truths):
             gt = json.loads(gt_str) if isinstance(gt_str, str) else gt_str
+            text = _extract_text(completion)
 
-            r_format = format_reward(completion, gt)
-            r_fdi = fdi_reward(completion, gt)
+            r_format = format_reward(text, gt)
+            r_fdi = fdi_reward(text, gt)
             total = r_format + r_fdi
 
             rewards.append(total)
