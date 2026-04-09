@@ -1,0 +1,42 @@
+# Data
+dataset/
+data/*.jsonl
+*.zip
+
+# Model checkpoints
+checkpoints/
+*.pt
+*.bin
+*.safetensors
+*.gguf
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Env
+.env
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# W&B
+wandb/
+
+# Misc
+*.log
+/tmp/

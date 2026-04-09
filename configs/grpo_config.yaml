@@ -1,0 +1,58 @@
+# GRPO Training Config — Baseline (Run 1)
+# Tuned for H100 SXM 80GB (~55GB VRAM target)
+
+# Model
+model_name: "Qwen/Qwen3-VL-7B-Instruct"
+load_in_4bit: true
+
+# LoRA
+lora_r: 16
+lora_alpha: 32
+lora_target_modules:
+  - q_proj
+  - v_proj
+  - o_proj
+  - gate_proj
+  - up_proj
+  - down_proj
+
+# GRPO
+num_generations: 4
+max_new_tokens: 512
+temperature: 0.7
+top_p: 0.9
+
+# Training
+learning_rate: 5.0e-6
+num_train_epochs: 3
+per_device_train_batch_size: 2
+gradient_accumulation_steps: 4
+warmup_ratio: 0.05
+max_grad_norm: 1.0
+use_gradient_checkpointing: true
+
+# Checkpointing
+save_steps: 50
+save_total_limit: 5
+output_dir: "checkpoints/grpo_run1"
+
+# Logging
+logging_steps: 10
+report_to: "wandb"
+wandb_project: "dentex-rlvr"
+wandb_run_name: "grpo_run1_baseline"
+
+# Data
+train_data_path: "data/dentex_train.jsonl"
+test_data_path: "data/dentex_test.jsonl"
+eval_steps: 100
+
+# Reward
+reward_weights:
+  format: 0.10
+  quadrant: 0.30
+  tooth: 0.30
+  diagnosis: 0.30
+
+# Seed
+seed: 42
