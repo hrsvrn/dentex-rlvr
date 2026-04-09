@@ -176,6 +176,16 @@ def main() -> None:
     train_dataset = build_sft_dataset(Path(cfg.train_data_path))
     print(f"  {len(train_dataset)} training samples")
 
+    # Formatting function required by Unsloth's SFTTrainer
+    def formatting_func(examples):
+        texts = []
+        for msgs in examples["messages"]:
+            text = tokenizer.apply_chat_template(
+                msgs, tokenize=False, add_generation_prompt=False
+            )
+            texts.append(text)
+        return texts
+
     # Configure SFT
     sft_config = SFTConfig(
         output_dir=cfg.output_dir,
@@ -198,6 +208,7 @@ def main() -> None:
         model=model,
         args=sft_config,
         train_dataset=train_dataset,
+        formatting_func=formatting_func,
         processing_class=tokenizer,
     )
 
