@@ -10,15 +10,12 @@ from unsloth import FastVisionModel
 
 DEFAULT_MODEL = "hrsvrn/Qwen3-VL-8B-dentex-rlvr-grpo"
 
-SYSTEM_PROMPT = (
-    "You are an expert dental diagnostic AI. Analyze the image and output "
-    "findings exactly as requested. First think through the anatomy, then "
-    "provide the final answer."
-)
+# Must match the prompts used during training (data/convert_dentex.py)
+SYSTEM_PROMPT = "You are a dental radiologist. Analyze the panoramic X-ray."
 
 USER_PROMPT = (
-    "Identify all abnormal teeth. For each, output FDI quadrant (1-4), "
-    "tooth number (1-8), and diagnosis (caries/deep_caries/periapical/impacted). "
+    "Identify all abnormal teeth. For each, output FDI quadrant (1\u20134), "
+    "tooth number (1\u20138), and diagnosis (caries/deep_caries/periapical/impacted). "
     "Think step by step inside <think> tags. Output answer inside <answer> tags. "
     "Format: <answer>Q{q}T{t}:{diag}, Q{q}T{t}:{diag}, ...</answer>"
 )

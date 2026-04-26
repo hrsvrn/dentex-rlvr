@@ -33,12 +33,19 @@ def main():
     image = Image.open(args.image).convert("RGB")
     print(f"Loaded image: {args.image} ({image.size[0]}x{image.size[1]})")
 
-    # The exact system and user prompt used during training
+    # Must match the prompts used during training (data/convert_dentex.py)
+    system_prompt = "You are a dental radiologist. Analyze the panoramic X-ray."
+    user_prompt = (
+        "Identify all abnormal teeth. For each, output FDI quadrant (1\u20134), "
+        "tooth number (1\u20138), and diagnosis (caries/deep_caries/periapical/impacted). "
+        "Think step by step inside <think> tags. Output answer inside <answer> tags. "
+        "Format: <answer>Q{q}T{t}:{diag}, Q{q}T{t}:{diag}, ...</answer>"
+    )
     messages = [
-        {"role": "system", "content": [{"type": "text", "text": "You are an expert dental diagnostic AI. Analyze the image and output findings exactly as requested. First think through the anatomy, then provide the final answer."}]},
+        {"role": "system", "content": [{"type": "text", "text": system_prompt}]},
         {"role": "user", "content": [
             {"type": "image", "image": image},
-            {"type": "text", "text": "Identify the quadrant, tooth, and pathology for all issues."}
+            {"type": "text", "text": user_prompt},
         ]}
     ]
 
