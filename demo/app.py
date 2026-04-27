@@ -71,6 +71,8 @@ def predict(image, max_tokens: int, temperature: float):
     if model is None or processor is None:
         return "Model not loaded.", "", ""
 
+    print(f"[predict] Received image: {image.size}, max_tokens={max_tokens}, temperature={temperature}")
+
     messages = [
         {
             "role": "system",
@@ -95,6 +97,8 @@ def predict(image, max_tokens: int, temperature: float):
         return_tensors="pt",
     ).to(model.device)
 
+    print(f"[predict] Input shape: {inputs['input_ids'].shape}")
+
     gen_kwargs = dict(
         max_new_tokens=max_tokens,
         use_cache=True,
@@ -111,6 +115,10 @@ def predict(image, max_tokens: int, temperature: float):
 
     new_ids = output_ids[0][inputs["input_ids"].shape[1]:]
     raw = processor.decode(new_ids, skip_special_tokens=True)
+
+    print(f"[predict] Generated {len(new_ids)} tokens")
+    print(f"[predict] Raw output:\n{raw}")
+    print("-" * 60)
 
     reasoning, findings = parse_output(raw)
     table = findings_to_table(findings)
@@ -140,9 +148,7 @@ def build_app() -> gr.Blocks:
 
             with gr.Column(scale=1):
                 findings_output = gr.Markdown(label="Findings")
-                reasoning_output = gr.Textbox(
-                    label="Reasoning", lines=10, interactive=False
-                )
+                reasoning_output = gr.Markdown(label="Reasoning")
 
         with gr.Accordion("Raw model output", open=False):
             raw_output = gr.Textbox(label="Raw", lines=8, interactive=False)
